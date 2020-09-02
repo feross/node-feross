@@ -1,0 +1,38 @@
+{
+  "name": "feross",
+  "description": "Feross's Util Functions",
+  "version": "1.0.0",
+  "author": {
+    "name": "Feross Aboukhadijeh",
+    "email": "feross@feross.org",
+    "url": "http://feross.org/"
+  },
+  "bugs": {
+    "url": "https://github.com/feross/feross/issues"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "express-rate-limit": "^5.1.3",
+    "morgan": "^1.10.0",
+    "rollbar": "^2.19.3"
+  },
+  "devDependencies": {
+    "standard": "*"
+  },
+  "homepage": "https://github.com/feross/feross",
+  "keywords": [],
+  "license": "MIT",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/feross/feross.git"
+  },
+  "scripts": {
+    "test": "standard"
+  },
+  "standard": {
+    "global": [
+      "globalThis"
+    ]
+  }
+}
