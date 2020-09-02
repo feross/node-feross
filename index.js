@@ -1,3 +1,4 @@
+/*! feross. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> */
 const express = require('express')
 const http = require('http')
 const morgan = require('morgan')
