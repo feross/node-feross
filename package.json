@@ -1,6 +1,6 @@
 {
   "name": "feross",
-  "description": "Feross's Util Functions",
+  "description": "Feross Utility Functions",
   "version": "1.0.0",
   "author": {
     "name": "Feross Aboukhadijeh",
@@ -8,7 +8,7 @@
     "url": "http://feross.org/"
   },
   "bugs": {
-    "url": "https://github.com/feross/feross/issues"
+    "url": "https://github.com/feross/node-feross/issues"
   },
   "dependencies": {
     "express": "^4.17.1",
@@ -19,13 +19,13 @@
   "devDependencies": {
     "standard": "*"
   },
-  "homepage": "https://github.com/feross/feross",
+  "homepage": "https://github.com/feross/node-feross",
   "keywords": [],
   "license": "MIT",
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git://github.com/feross/feross.git"
+    "url": "git://github.com/feross/node-feross.git"
   },
   "scripts": {
     "test": "standard"
