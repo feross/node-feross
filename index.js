@@ -5,24 +5,21 @@ const morgan = require('morgan')
 const rateLimit = require('express-rate-limit')
 const Rollbar = require('rollbar')
 
-const IS_PROD = process.env.NODE_ENV === 'production'
-
-// Time (in ms) to cache the HTTP "Strict-Transport-Security" (HSTS)
-// setting. This value is sent as the "max-age" attribute in the header.
-const MAX_AGE_HSTS = IS_PROD
-  ? 365 * 24 * 60 * 60 * 1000 // 1 year
-  : 0
-
-// Time (in ms) to cache static resources. This value is sent in the HTTP
-// "Cache-Control" header.
-const MAX_AGE_STATIC = IS_PROD
-  ? 365 * 24 * 60 * 60 * 1000 // 1 year
-  : 0
-
 function createServer ({
+  isProd,
   host,
   maxRequestsPerSecond = 5
 }) {
+  if (isProd == null) {
+    throw new Error('Missing `isProd` option')
+  }
+
+  // Time (in ms) to cache the HTTP "Strict-Transport-Security" (HSTS)
+  // setting. This value is sent as the "max-age" attribute in the header.
+  const maxAgeHsts = isProd
+    ? 365 * 24 * 60 * 60 * 1000 // 1 year
+    : 0
+
   const app = express()
   const httpServer = http.createServer()
   httpServer.on('request', app)
@@ -36,14 +33,14 @@ function createServer ({
 
   function useExpressConfig () {
     app.set('trust proxy', true) // Trust the nginx reverse proxy
-    app.set('json spaces', IS_PROD ? 0 : 2) // Pretty JSON (in dev)
+    app.set('json spaces', isProd ? 0 : 2) // Pretty JSON (in dev)
     app.set('x-powered-by', false) // Prevent server fingerprinting
   }
 
   function useSecurityHeaders () {
     app.use((req, res, next) => {
       // Redirect to canonical origin, over https
-      if (IS_PROD && req.method === 'GET' &&
+      if (isProd && req.method === 'GET' &&
           (req.protocol !== 'https' || req.hostname !== host)) {
         return res.redirect(301, `https://${host}${req.url}`)
       }
@@ -52,7 +49,7 @@ function createServer ({
       // including on subdomains, and allow browser preload.
       res.header(
         'Strict-Transport-Security',
-        `max-age=${MAX_AGE_HSTS / 1000}; includeSubDomains; preload`
+        `max-age=${maxAgeHsts / 1000}; includeSubDomains; preload`
       )
 
       // Disable browser mime-type sniffing to reduce exposure to drive-by
@@ -65,19 +62,19 @@ function createServer ({
 
   function useLogger () {
     // Log HTTP requests
-    const logger = morgan(IS_PROD ? 'combined' : 'dev', { immediate: !IS_PROD })
+    const logger = morgan(isProd ? 'combined' : 'dev', { immediate: !isProd })
     app.use(logger)
   }
 
   function useRateLimit () {
-    if (!IS_PROD) return
+    if (!isProd) return
 
     // Rate limit HTTP requests
     morgan.format(
       'rate-limit',
       'Blocked for too many requests - :remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"'
     )
-    const rateLimitLogger = morgan('rate-limit', { immediate: !IS_PROD })
+    const rateLimitLogger = morgan('rate-limit', { immediate: !isProd })
 
     const windowMs = 60 * 1000
     const max = 60 * maxRequestsPerSecond
@@ -95,8 +92,12 @@ function createServer ({
   }
 }
 
-function createRollbar ({ accessToken }) {
-  if (!IS_PROD) return
+function createRollbar ({ accessToken, isProd }) {
+  if (isProd == null) {
+    throw new Error('Missing `isProd` option')
+  }
+
+  if (!isProd) return
 
   globalThis.rollbar = new Rollbar({
     accessToken: accessToken,
@@ -133,6 +134,24 @@ function getRollbarHandler () {
   else return (req, res, next) => next()
 }
 
+// Returns an express.static middleware, configured correctly
+function serveStatic (path, { isProd, ...opts }) {
+  if (isProd == null) {
+    throw new Error('Missing `isProd` option')
+  }
+
+  // Time (in ms) to cache static resources. This value is sent in the HTTP
+  // "Cache-Control" header.
+  const maxAgeStatic = isProd
+    ? 365 * 24 * 60 * 60 * 1000 // 1 year
+    : 0
+
+  return express.static(path, {
+    maxAge: maxAgeStatic,
+    ...opts
+  })
+}
+
 function runMiddleware (req, res, fn) {
   return new Promise((resolve, reject) => {
     fn(req, res, (result) => {
@@ -145,18 +164,10 @@ function runMiddleware (req, res, fn) {
   })
 }
 
-// Returns an express.static middleware, configured correctly
-function serveStatic (path, opts) {
-  return express.static(path, {
-    maxAge: MAX_AGE_STATIC,
-    ...opts
-  })
-}
-
 module.exports = {
   createServer,
   createRollbar,
   getRollbarHandler,
-  runMiddleware,
-  serveStatic
+  serveStatic,
+  runMiddleware
 }
